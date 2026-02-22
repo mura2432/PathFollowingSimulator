@@ -18,29 +18,35 @@ class PathSegment {
 class PathData {
 	public Vector2 velocity, acceleration;
 	public double radius, power;
-	public boolean reversed;
+	public boolean reversed, decel;
+	public int index;
 	
-	public PathData (Vector2 vel, Vector2 accel, double r, double pow, boolean rev) {
+	public PathData (Vector2 vel, Vector2 accel, double r, double pow, boolean rev, boolean dec, int ind) {
 		velocity = vel.clone();
 		acceleration = accel.clone();
 		radius = r;
 		power = pow;
 		reversed = rev;
+		decel = dec;
+		index = ind;
 	}
 }
 
 class GuidingVectors {
-	public Vector2 tangential, pull, centripetal;
-	public double tangentialMag;
+	public Vector2 tangential, pull, repulsion;
 	
-	public GuidingVectors(Vector2 v_t, Vector2 v_p, Vector2 v_c) {
+	public GuidingVectors(Vector2 v_t, Vector2 v_p, Vector2 v_r) {
 		tangential = v_t.clone();
-		tangentialMag = tangential.mag();
 		pull = v_p.clone();
-		centripetal = v_c.clone();
+		pull.mul(tangential.mag());
+		repulsion = v_r.clone();
 	}
 	
-	public Vector2 theoreticalVel() { return Vector2.add(tangential, Vector2.add(pull, centripetal)); }
+	public Vector2 theoreticalVel() { return Vector2.add(tangential, Vector2.add(pull, repulsion)); }
+	
+	public Vector2 getAccel(GuidingVectors predict) { return new Vector2((predict.theoreticalVel().x - this.theoreticalVel().x) / 0.001, (predict.theoreticalVel().y - this.theoreticalVel().y) / 0.001); }
+
+	public double getRadius(GuidingVectors predict) { return (this.theoreticalVel().mag() * this.theoreticalVel().mag() * this.theoreticalVel().mag()) / (this.theoreticalVel().x * this.getAccel(predict).y - this.theoreticalVel().y * this.getAccel(predict).x); }
 }
 
 public class Path {
@@ -68,9 +74,13 @@ public class Path {
 		return this;
 	}
 	
+	public Pose2d getSegLast(int index) { return new Pose2d(segments.get(index).spline.getPos(1).x, segments.get(index).spline.getPos(1).y); }
+	
+	public Pose2d getLastPose() { return lastPose.clone(); }
+	
 	public static double k_p = 0.1666; // 1 / 6
 	
-	public GuidingVectors calculate(PathSegment currSegment, Pose2d robot) {
+	private GuidingVectors calculate(PathSegment currSegment, Pose2d robot) {
 		Spline s = currSegment.spline;
 		double tau = s.getT(robot);
 		
@@ -99,11 +109,14 @@ public class Path {
 		GuidingVectors current = calculate(segments.get(index), robot);
 		GuidingVectors predict = calculate(segments.get(index), new Pose2d(robot.x + current.theoreticalVel().x * 0.001, robot.y + current.theoreticalVel().y * 0.001));
 			
-		/* 
-		 * TODO: Contemplate the importance of tangential, whether or not it needs to be normed before adding. And if the original magnitude matters. This will influence final move vector!!! 
-		 * (and also think about both methods [norm or mul by mag of tangential to pull and centripetal] if they will lead to teh same conclusion and the only diff is magnitude)
-		 */
-		
-		return null;
+		return new PathData(
+				current.theoreticalVel(),
+				current.getAccel(predict),
+				current.getRadius(predict),
+				segments.get(index).power,
+				segments.get(index).reversed,
+				segments.get(index).decel,
+				index
+				);
 	}
 }
