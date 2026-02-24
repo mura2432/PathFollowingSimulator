@@ -93,6 +93,8 @@ public class Drivetrain {
 	
 	public void setPath (Path p) { path = p; }
 	
+	public Pose2d getPose() { return robot.clone(); }
+	
     private void calculateErrors(){
         double deltaX = (targetPoint.x - robot.x);
         double deltaY = (targetPoint.y - robot.y);

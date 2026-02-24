@@ -10,39 +10,17 @@ import javax.swing.JLabel;
 import GVF.*;
 
 public class Driver {
-	
-	private static ArrayList<RepulsionPoint> repulsionPoints;
-	private static Path p;
-	private static Drivetrain dt;
-	
 	public static void main(String[] args) {
 		JFrame frame = new JFrame("Clueless");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(648, 648);
+		frame.setSize(720, 720);
 		frame.add(new JLabel(new ImageIcon("C:/Users/houch/Pictures/DECODE Field.jpg/")));
-		
-		init();
-		
-		do {
-			dt.update();
-			
-		} while (dt.state != Drivetrain.State.WAIT);
-		
 		frame.setVisible(true);
-	}
-	
-	private static void init() {
-		repulsionPoints = new ArrayList<>();
 		
-		
-		p = new Path(new Pose2d(0, 0), repulsionPoints)
-				.addPoint(new Pose2d(48, 0, 0), false, false)
-				.addPoint(new Pose2d(48, 48, Math.PI/2), false, false)
-				.addPoint(new Pose2d(0, 48, Math.PI), false, false)
-				.addPoint(new Pose2d(0, 0, Math.PI * 3/2), false, false);
-		
-		
-		dt = new Drivetrain(new Pose2d(0, 0));
-		dt.setPath(p);
+		Field f = new Field(new Pose2d(0, 0, 0));
+		frame.add(f);
+		do {
+			f.paintComponent(frame.getGraphics());
+		} while (!f.isFinished());	
 	}
 }
